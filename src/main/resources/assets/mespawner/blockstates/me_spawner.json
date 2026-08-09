@@ -1,0 +1,6 @@
+{
+  "variants": {
+    "online=false": { "model": "mespawner:block/me_spawner" },
+    "online=true": { "model": "mespawner:block/me_spawner_active" }
+  }
+}

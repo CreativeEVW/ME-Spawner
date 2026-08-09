@@ -1,0 +1,12 @@
+{
+  "block.mespawner.me_spawner": "ME刷怪笼",
+  "itemGroup.mespawner": "ME刷怪笼",
+  "gui.mespawner.energy": "能量: %s / %s AE",
+  "item.mespawner.probability_card": "概率卡",
+  "item.mespawner.looting_card": "抢夺卡",
+  "jade.mespawner.online": "设备在线",
+  "jade.mespawner.offline": "设备离线",
+  "jade.mespawner.missing_channel": "设备缺少频道",
+  "jade.mespawner.egg": "§a生物: %s",
+  "config.jade.plugin_mespawner.info": "ME刷怪笼"
+}

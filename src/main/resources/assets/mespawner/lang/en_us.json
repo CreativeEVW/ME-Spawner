@@ -1,0 +1,12 @@
+{
+  "block.mespawner.me_spawner": "ME Spawner",
+  "itemGroup.mespawner": "ME Spawner",
+  "gui.mespawner.energy": "Energy: %s / %s AE",
+  "item.mespawner.probability_card": "Probability Card",
+  "item.mespawner.looting_card": "Looting Card",
+  "jade.mespawner.online": "Device Online",
+  "jade.mespawner.offline": "Device Offline",
+  "jade.mespawner.missing_channel": "Device Missing Channel",
+  "jade.mespawner.egg": "§aEntity: %s",
+  "config.jade.plugin_mespawner.info": "ME Spawner"
+}

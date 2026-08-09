@@ -1,0 +1,38 @@
+# Mod Properties
+modLoader="javafml"
+loaderVersion="${loader_version_range}"
+license="${mod_license}"
+issueTrackerURL="https://github.com/example/mespawner/issues"
+
+[[mods]]
+modId="${mod_id}"
+namespace="${mod_id}"
+version="${mod_version}"
+displayName="${mod_name}"
+description="${mod_description}"
+authors="${mod_authors}"
+logoFile="logo.png"
+
+[features.${mod_id}]
+javaVersion="[${java_version},)"
+
+[[dependencies.${mod_id}]]
+    modId="neoforge"
+    type="required"
+    versionRange="${neo_version_range}"
+    ordering="AFTER"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="minecraft"
+    type="required"
+    versionRange="${minecraft_version_range}"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="ae2"
+    type="required"
+    versionRange="[19.2,)"
+    ordering="AFTER"
+    side="BOTH"

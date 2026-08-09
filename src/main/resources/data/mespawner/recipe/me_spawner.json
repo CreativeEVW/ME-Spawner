@@ -1,0 +1,26 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "SFS",
+    "CMC",
+    "SFS"
+  ],
+  "key": {
+    "S": {
+      "item": "ae2:smooth_sky_stone_block"
+    },
+    "F": {
+      "item": "ae2:fluix_block"
+    },
+    "C": {
+      "item": "ae2:calculation_processor"
+    },
+    "M": {
+      "item": "minecraft:spawner"
+    }
+  },
+  "result": {
+    "id": "mespawner:me_spawner",
+    "count": 1
+  }
+}
