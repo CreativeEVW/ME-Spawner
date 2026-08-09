@@ -6,7 +6,7 @@ navigation:
 
 # MESpawner
 
-MESpawner is an addon for Applied Energistics 2 that adds an ME-powered mob spawner.
+MESpawner is an addon for Applied Energistics 2 that adds an ME-powered loot generator.
 
 ## Machines
 
