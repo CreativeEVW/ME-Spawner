@@ -20,4 +20,10 @@ public class ModItems {
     public static final DeferredItem<Item> LOOTING_CARD = ITEMS.register("looting_card",
             () -> new Item(new Item.Properties().stacksTo(64)));
 
+    public static final DeferredItem<Item> COMPRESSED_LOOTING_CARD = ITEMS.register("compressed_looting_card",
+            () -> new Item(new Item.Properties().stacksTo(64)));
+
+    public static final DeferredItem<Item> ULTIMATE_LOOTING_CARD = ITEMS.register("ultimate_looting_card",
+            () -> new Item(new Item.Properties().stacksTo(64)));
+
 }

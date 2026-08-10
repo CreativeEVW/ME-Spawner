@@ -1,0 +1,6 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": ["LLL", "LLL", "LLL"],
+  "key": { "L": { "item": "mespawner:looting_card" } },
+  "result": { "id": "mespawner:compressed_looting_card", "count": 1 }
+}

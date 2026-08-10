@@ -42,7 +42,9 @@ public class MESpawnerMenu extends AbstractContainerMenu {
             addSlot(new Slot(cardInv, i, 185, 7 + i * 18) {
                 @Override public boolean mayPlace(ItemStack s) {
                     if (slot == 0) return s.getItem() == ModItems.PROBABILITY_CARD.get();
-                    if (slot <= 3) return s.getItem() == ModItems.LOOTING_CARD.get();
+                    if (slot <= 3) return s.getItem() == ModItems.LOOTING_CARD.get()
+                            || s.getItem() == ModItems.COMPRESSED_LOOTING_CARD.get()
+                            || s.getItem() == ModItems.ULTIMATE_LOOTING_CARD.get();
                     return s.getItem() == AEItems.SPEED_CARD.asItem();
                 }
                 @Override public int getMaxStackSize() { return 1; }
@@ -81,7 +83,8 @@ public class MESpawnerMenu extends AbstractContainerMenu {
         if (item == ModItems.PROBABILITY_CARD.get()) {
             return moveOrFail(stack, slot, 1, 2, false);
         }
-        if (item == ModItems.LOOTING_CARD.get()) {
+        if (item == ModItems.LOOTING_CARD.get() || item == ModItems.COMPRESSED_LOOTING_CARD.get()
+                || item == ModItems.ULTIMATE_LOOTING_CARD.get()) {
             return moveOrFail(stack, slot, 2, 5, false);
         }
         if (item == AEItems.SPEED_CARD.asItem()) {

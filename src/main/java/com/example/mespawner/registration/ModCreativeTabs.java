@@ -23,6 +23,8 @@ public class ModCreativeTabs {
                         output.accept(ModItems.ME_SPAWNER.get());
                         output.accept(ModItems.PROBABILITY_CARD.get());
                         output.accept(ModItems.LOOTING_CARD.get());
+                        output.accept(ModItems.COMPRESSED_LOOTING_CARD.get());
+                        output.accept(ModItems.ULTIMATE_LOOTING_CARD.get());
                     })
                     .build()
     );

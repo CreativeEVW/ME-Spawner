@@ -107,7 +107,9 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
 
     private void process(ServerLevel lv, int ticksSinceLastCall) {
         tickCounter += ticksSinceLastCall;
-        int interval = getEffectiveCooldown(countCards(4, 8));
+        int speedCount = 0;
+        for (int i = 4; i < 8; i++) if (!cardSlots.getItem(i).isEmpty()) speedCount++;
+        int interval = getEffectiveCooldown(speedCount);
         if (tickCounter < interval) return;
         tickCounter = 0;
 
@@ -142,15 +144,15 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
                         lv.damageSources().generic())
                 .create(net.minecraft.world.level.storage.loot.parameters.LootContextParamSets.ENTITY);
 
-        int looting = countCards(1, 4);
-        int speed = countCards(4, 8);
+        long lootingMult = getLootingMultiplier();
+        int speed = 0;
+        for (int i = 4; i < 8; i++) if (!cardSlots.getItem(i).isEmpty()) speed++;
         boolean hasProbability = !cardSlots.getItem(0).isEmpty();
         var src = new MachineSource(this);
         var inv = grid.getStorageService().getInventory();
 
         if (hasProbability) {
             var allKeys = getLootTableKeys(lootTable, params);
-            long lootingMult = looting > 0 ? (1L << looting) : 1;
             for (var key : allKeys) {
                 inv.insert(key, lootingMult, Actionable.MODULATE, src);
             }
@@ -159,8 +161,8 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
             for (var drop : drops) {
                 var key = AEItemKey.of(drop);
                 if (key == null) continue;
-                long amt = drop.getCount();
-                if (looting > 0) amt *= (1L << looting);
+                long amt = drop.getCount() * lootingMult;
+                if (amt < 1) amt = 1;
                 inv.insert(key, amt, Actionable.MODULATE, src);
             }
         }
@@ -224,11 +226,15 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
         return keys;
     }
 
-    private int countCards(int from, int to) {
-        int c = 0;
-        for (int i = from; i < to; i++)
-            if (!cardSlots.getItem(i).isEmpty()) c++;
-        return c;
+    private long getLootingMultiplier() {
+        long mult = 1;
+        for (int i = 1; i < 4; i++) {
+            var item = cardSlots.getItem(i).getItem();
+            if (item == ModItems.LOOTING_CARD.get()) mult *= 2;
+            else if (item == ModItems.COMPRESSED_LOOTING_CARD.get()) mult *= 6;
+            else if (item == ModItems.ULTIMATE_LOOTING_CARD.get()) mult *= 9;
+        }
+        return mult;
     }
 
     private int getEffectiveCooldown(int speedCards) {
