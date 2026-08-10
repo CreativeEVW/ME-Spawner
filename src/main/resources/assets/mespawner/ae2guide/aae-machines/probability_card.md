@@ -1,19 +1,19 @@
 ---
 navigation:
   parent: index.md
-  title: Probability Card
+  title: 概率卡
   icon: probability_card
 item_ids:
 - mespawner:probability_card
 ---
 
-# Probability Card
+# 概率卡 (Probability Card)
 
 <ItemImage id="probability_card" scale="8" />
 
-Resolves the entire loot table when installed, inserting 1 of every possible item each cycle.
+安装后遍历战利品表，使所有可能掉落的物品各生成1个。
 
-- **Max Installed**: 1
-- **Slot**: ME Spawner upgrade slot 1
+- **最大安装数**: 1
+- **适用范围**: ME刷怪笼 升级槽位1
 
 <RecipeFor id="probability_card" />

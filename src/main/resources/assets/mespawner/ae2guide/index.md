@@ -6,13 +6,15 @@ navigation:
 
 # MESpawner
 
-MESpawner is an addon for Applied Energistics 2 that adds an ME-powered loot generator.
+MESpawner 是 Applied Energistics 2 的附属模组，添加了一个 ME 驱动的战利品生成器。
 
-## Machines
+## 机器
 
 - <ItemLink id="me_spawner" />
 
-## Upgrade Cards
+## 升级卡
 
 - <ItemLink id="probability_card" />
 - <ItemLink id="looting_card" />
+- <ItemLink id="compressed_looting_card" />
+- <ItemLink id="ultimate_looting_card" />

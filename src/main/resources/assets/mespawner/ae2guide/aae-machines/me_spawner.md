@@ -1,32 +1,32 @@
 ---
 navigation:
   parent: index.md
-  title: ME Spawner
+  title: ME刷怪笼
   icon: me_spawner
 item_ids:
 - mespawner:me_spawner
 ---
 
-# ME Spawner
+# ME刷怪笼 (ME Spawner)
 
 <BlockImage id="me_spawner" scale="8" />
 
-When connected to an ME network, processes a spawn egg's loot table every 10 seconds and inserts the generated drops directly into ME storage.
+接入AE网络后，每10秒根据刷怪蛋对应实体的战利品表将掉落物存入ME网络。
 
-**High energy consumption.** May not work for special spawn eggs.
+**耗能较高**（100k AE/次）。对于特殊刷怪蛋可能无效。
 
-## Usage
+## 使用方法
 
-1. Connect the ME Spawner to your ME network via ME cables
-2. Place a spawn egg in the center slot to select the entity type
-3. The machine will automatically generate drops from the loot table and store them in the network
+1. 将ME刷怪笼接入ME网络
+2. 在中心槽放入刷怪蛋以选择生物类型
+3. 机器将自动根据战利品表生成掉落物并存入网络
 
-## Upgrade Slots (8 slots)
+## 升级卡槽 (8槽)
 
-| Slot | Type | Max | Effect |
-|------|------|-----|--------|
-| 1 | Probability Card | 1 | Resolves the entire loot table, inserting 1 of every possible item |
-| 2-4 | Looting Card | 3 | Doubles drop quantity per card (×2, ×4, ×8) |
-| 5-8 | Acceleration Card | 4 | Halves the processing interval per card |
+| 槽位 | 类型 | 最大数量 | 效果 |
+|------|------|----------|------|
+| 1 | 概率卡 | 1 | 遍历战利品表，每种物品掉落1个 |
+| 2-4 | 抢夺卡/压缩/终极 | 3 | 掉落数量×2/×6/×9（乘法叠加） |
+| 5-8 | 加速卡 | 4 | 每张冷却时间减半 |
 
 <RecipeFor id="me_spawner" />
