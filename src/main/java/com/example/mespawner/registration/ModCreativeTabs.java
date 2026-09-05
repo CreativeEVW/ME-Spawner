@@ -25,6 +25,16 @@ public class ModCreativeTabs {
                         output.accept(ModItems.LOOTING_CARD.get());
                         output.accept(ModItems.COMPRESSED_LOOTING_CARD.get());
                         output.accept(ModItems.ULTIMATE_LOOTING_CARD.get());
+                        output.accept(ModItems.SPAWNER_CELL_1K.get());
+                        output.accept(ModItems.SPAWNER_CELL_4K.get());
+                        output.accept(ModItems.SPAWNER_CELL_16K.get());
+                        output.accept(ModItems.SPAWNER_CELL_64K.get());
+                        output.accept(ModItems.SPAWNER_CELL_256K.get());
+                        output.accept(ModItems.MONSTER_DISK_1K.get());
+                        output.accept(ModItems.MONSTER_DISK_4K.get());
+                        output.accept(ModItems.MONSTER_DISK_16K.get());
+                        output.accept(ModItems.MONSTER_DISK_64K.get());
+                        output.accept(ModItems.MONSTER_DISK_256K.get());
                     })
                     .build()
     );

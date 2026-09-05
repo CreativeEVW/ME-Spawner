@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "ABA",
+    "BCB",
+    "DDD"
+  ],
+  "key": {
+    "A": { "item": "ae2:ender_dust" },
+    "B": { "item": "mespawner:spawner_cell_1k" },
+    "C": { "item": "ae2:fluix_pearl" },
+    "D": { "item": "ae2:singularity" }
+  },
+  "result": {
+    "id": "mespawner:spawner_cell_4k",
+    "count": 1
+  }
+}

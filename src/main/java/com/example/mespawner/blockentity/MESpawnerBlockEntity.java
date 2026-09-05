@@ -118,23 +118,45 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
         var grid = getMainNode().getGrid();
         if (grid == null) return;
 
-        var egg = eggSlot.getItem(0);
-        if (!(egg.getItem() instanceof SpawnEggItem)) return;
-        var eggType = (EntityType<?>) ((SpawnEggItem) egg.getItem()).getType(egg);
-        if (eggType == null) return;
+        var item = eggSlot.getItem(0);
+        if (item.isEmpty()) return;
 
-        // Draw power from the ME network
+        // Collect entity types to process
+        var types = new java.util.ArrayList<EntityType<?>>();
+        if (item.getItem() instanceof SpawnEggItem eggItem) {
+            var t = (EntityType<?>) eggItem.getType(item);
+            if (t != null) types.add(t);
+        } else if (item.getItem() instanceof com.example.mespawner.item.MonsterDiskItem disk) {
+            types.addAll(disk.getFormedEntityTypes(item, lv));
+        }
+        if (types.isEmpty()) return;
+
+        // Draw power (per entity type)
         var energyGrid = grid.getEnergyService();
-        var extracted = energyGrid.extractAEPower(Config.spawnEnergyCost, Actionable.MODULATE,
+        long totalCost = (long) Config.spawnEnergyCost * types.size();
+        var extracted = energyGrid.extractAEPower(totalCost, Actionable.MODULATE,
                 appeng.api.config.PowerMultiplier.CONFIG);
-        if (Math.abs(extracted - Config.spawnEnergyCost) > 1) return;
+        if (Math.abs(extracted - totalCost) > 1) return;
 
-        // Roll loot table with a temporary entity
-        var lootTable = lv.getServer().reloadableRegistries()
-                .getLootTable(eggType.getDefaultLootTable());
+        long lootingMult = getLootingMultiplier();
+        boolean hasProbability = !cardSlots.getItem(0).isEmpty();
+        var src = new MachineSource(this);
+        var inv = grid.getStorageService().getInventory();
+
+        // Process each entity type in parallel
+        for (var type : types) {
+            processEntityType(lv, type, hasProbability, lootingMult, src, inv);
+        }
+
+        setChanged();
+    }
+
+    private void processEntityType(ServerLevel lv, EntityType<?> type, boolean hasProbability,
+                                   long lootingMult, MachineSource src, appeng.api.storage.MEStorage inv) {
+        var lootTable = lv.getServer().reloadableRegistries().getLootTable(type.getDefaultLootTable());
         if (lootTable == LootTable.EMPTY) return;
 
-        var tmpEntity = eggType.create(lv);
+        var tmpEntity = type.create(lv);
         if (tmpEntity == null) return;
         var params = new net.minecraft.world.level.storage.loot.LootParams.Builder(lv)
                 .withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.ORIGIN,
@@ -144,21 +166,12 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
                         lv.damageSources().generic())
                 .create(net.minecraft.world.level.storage.loot.parameters.LootContextParamSets.ENTITY);
 
-        long lootingMult = getLootingMultiplier();
-        int speed = 0;
-        for (int i = 4; i < 8; i++) if (!cardSlots.getItem(i).isEmpty()) speed++;
-        boolean hasProbability = !cardSlots.getItem(0).isEmpty();
-        var src = new MachineSource(this);
-        var inv = grid.getStorageService().getInventory();
-
         if (hasProbability) {
-            var allKeys = getLootTableKeys(lootTable, params);
-            for (var key : allKeys) {
+            for (var key : getLootTableKeys(lootTable, params)) {
                 inv.insert(key, lootingMult, Actionable.MODULATE, src);
             }
         } else {
-            var drops = lootTable.getRandomItems(params);
-            for (var drop : drops) {
+            for (var drop : lootTable.getRandomItems(params)) {
                 var key = AEItemKey.of(drop);
                 if (key == null) continue;
                 long amt = drop.getCount() * lootingMult;
@@ -166,8 +179,6 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
                 inv.insert(key, amt, Actionable.MODULATE, src);
             }
         }
-
-        setChanged();
     }
 
     private void collectKeys(net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer entry,

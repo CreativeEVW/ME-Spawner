@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": { "layer0": "mespawner:item/monster_disk_16k" },
+  "overrides": [
+    { "predicate": { "mespawner:fill_state": 1 }, "model": "mespawner:item/monster_disk_16kk" },
+    { "predicate": { "mespawner:fill_state": 2 }, "model": "mespawner:item/monster_disk_16kkk" }
+  ]
+}

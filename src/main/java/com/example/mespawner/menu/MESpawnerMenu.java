@@ -28,10 +28,13 @@ public class MESpawnerMenu extends AbstractContainerMenu {
     }
 
     private void addSlots(Inventory playerInventory) {
-        // Spawn egg slot
+        // Spawn egg / monster disk slot
         addSlot(new Slot(blockEntity != null ? blockEntity.eggSlot : new SimpleContainer(1),
                 0, 80, 47) {
-            @Override public boolean mayPlace(ItemStack s) { return s.getItem() instanceof SpawnEggItem; }
+            @Override public boolean mayPlace(ItemStack s) {
+                return s.getItem() instanceof SpawnEggItem
+                        || s.getItem() instanceof com.example.mespawner.item.MonsterDiskItem;
+            }
             @Override public int getMaxStackSize() { return 1; }
         });
 

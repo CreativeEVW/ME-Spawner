@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "AB",
+    "CD"
+  ],
+  "key": {
+    "A": { "item": "ae2:chest" },
+    "B": { "item": "mespawner:spawner_cell_256k" },
+    "C": { "item": "ae2:energy_cell" },
+    "D": { "item": "ae2:item_cell_housing" }
+  },
+  "result": {
+    "id": "mespawner:monster_disk_256k",
+    "count": 1
+  }
+}
