@@ -55,8 +55,6 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
     private final StoredEnergyAmount stored;
     public final SimpleContainer eggSlot = new SimpleContainer(1);
     public final SimpleContainer cardSlots = new SimpleContainer(8);
-    private ResourceLocation entityId = BuiltInRegistries.ENTITY_TYPE.getKey(EntityType.ZOMBIE);
-    private EntityType<?> cachedEntity = EntityType.ZOMBIE;
 
     public MESpawnerBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
@@ -260,15 +258,9 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
         storage.getInventory().insert(key, amount, Actionable.MODULATE, src);
     }
 
-    // ===== Entity =====
-    public EntityType<?> getEntityType() {
-        if (cachedEntity == null) cachedEntity = BuiltInRegistries.ENTITY_TYPE.getOptional(entityId).orElse(EntityType.ZOMBIE);
-        return cachedEntity;
-    }
-
     // ===== NBT =====
     @Override public void saveAdditional(CompoundTag t, HolderLookup.Provider r) {
-        super.saveAdditional(t, r); t.putDouble("pwr", stored.getAmount()); t.putString("ent", entityId.toString());
+        super.saveAdditional(t, r); t.putDouble("pwr", stored.getAmount());
         var eggTag = new CompoundTag();
         net.minecraft.world.ContainerHelper.saveAllItems(eggTag, eggSlot.getItems(), r);
         t.put("egg", eggTag);
@@ -278,7 +270,6 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
     }
     @Override public void loadTag(CompoundTag t, HolderLookup.Provider r) {
         super.loadTag(t, r); stored.setStored(t.getDouble("pwr"));
-        if (t.contains("ent")) { entityId = ResourceLocation.parse(t.getString("ent")); cachedEntity = BuiltInRegistries.ENTITY_TYPE.getOptional(entityId).orElse(EntityType.ZOMBIE); }
         if (t.contains("egg")) net.minecraft.world.ContainerHelper.loadAllItems(t.getCompound("egg"), eggSlot.getItems(), r);
         if (t.contains("cards")) net.minecraft.world.ContainerHelper.loadAllItems(t.getCompound("cards"), cardSlots.getItems(), r);
     }
