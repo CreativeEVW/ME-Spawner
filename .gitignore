@@ -1,5 +1,6 @@
 # IntelliJ
 .idea/
+.idea/claudeCodeTabState.xml
 *.iml
 out/
 
