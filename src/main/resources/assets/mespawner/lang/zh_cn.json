@@ -21,9 +21,5 @@
   "item.mespawner.monster_disk.full": "磁盘已满",
   "item.mespawner.monster_disk.recorded": "已同步击杀数据",
   "item.mespawner.monster_disk.formed": "已成型",
-  "jade.mespawner.online": "设备在线",
-  "jade.mespawner.offline": "设备离线",
-  "jade.mespawner.missing_channel": "设备缺少频道",
-  "jade.mespawner.egg": "§a生物: %s",
   "config.jade.plugin_mespawner.info": "ME刷怪笼"
 }

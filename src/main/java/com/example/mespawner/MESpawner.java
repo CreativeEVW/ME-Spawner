@@ -1,7 +1,9 @@
 package com.example.mespawner;
 
 import appeng.api.AECapabilities;
+import appeng.api.upgrades.Upgrades;
 import appeng.blockentity.AEBaseBlockEntity;
+import appeng.core.definitions.AEItems;
 import com.example.mespawner.item.MonsterDiskItem;
 import com.example.mespawner.menu.MESpawnerScreen;
 import com.example.mespawner.registration.*;
@@ -82,9 +84,20 @@ public class MESpawner {
     }
 
     private void commonSetup(FMLCommonSetupEvent event) {
-        AEBaseBlockEntity.registerBlockEntityItem(
-                ModBlockEntities.ME_SPAWNER_BLOCK_ENTITY.get(),
-                ModItems.ME_SPAWNER.get());
+        var block = ModBlocks.ME_SPAWNER.get();
+        var beType = ModBlockEntities.ME_SPAWNER_BLOCK_ENTITY.get();
+
+        AEBaseBlockEntity.registerBlockEntityItem(beType, ModItems.ME_SPAWNER.get());
+        block.setBlockEntity(
+                com.example.mespawner.blockentity.MESpawnerBlockEntity.class,
+                beType, null, null);
+
+        // Register upgrade cards with AE2's native upgrade system
+        Upgrades.add(ModItems.PROBABILITY_CARD.get(), block, 1);
+        Upgrades.add(ModItems.LOOTING_CARD.get(), block, 3);
+        Upgrades.add(ModItems.COMPRESSED_LOOTING_CARD.get(), block, 3);
+        Upgrades.add(ModItems.ULTIMATE_LOOTING_CARD.get(), block, 3);
+        Upgrades.add(AEItems.SPEED_CARD, block, 4);
     }
 
     private void registerCapabilities(RegisterCapabilitiesEvent event) {
@@ -95,6 +108,14 @@ public class MESpawner {
     }
 
     private void registerScreens(RegisterMenuScreensEvent event) {
-        event.register(ModMenuTypes.ME_SPAWNER_MENU.get(), MESpawnerScreen::new);
+        event.register(com.example.mespawner.menu.MESpawnerMenu.TYPE, MESpawner::createMESpawnerScreen);
+    }
+
+    private static MESpawnerScreen createMESpawnerScreen(
+            com.example.mespawner.menu.MESpawnerMenu menu,
+            net.minecraft.world.entity.player.Inventory inv,
+            net.minecraft.network.chat.Component title) {
+        var style = appeng.client.gui.style.StyleManager.loadStyleDoc("/screens/me_spawner.json");
+        return new MESpawnerScreen(menu, inv, title, style);
     }
 }

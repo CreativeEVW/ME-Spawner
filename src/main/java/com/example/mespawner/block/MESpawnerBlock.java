@@ -1,37 +1,23 @@
 package com.example.mespawner.block;
 
+import appeng.block.AEBaseEntityBlock;
+import appeng.menu.locator.MenuLocators;
 import com.example.mespawner.blockentity.MESpawnerBlockEntity;
-import com.example.mespawner.registration.ModBlockEntities;
-import com.mojang.serialization.MapCodec;
+import com.example.mespawner.menu.MESpawnerMenu;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
-import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.ItemInteractionResult;
-import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.Containers;
-import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.RenderShape;
-import net.minecraft.world.level.block.SoundType;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.entity.BlockEntityTicker;
-import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
-import net.minecraft.world.level.block.state.properties.IntegerProperty;
-import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.phys.BlockHitResult;
-import org.jetbrains.annotations.Nullable;
 
-public class MESpawnerBlock extends BaseEntityBlock {
+public class MESpawnerBlock extends AEBaseEntityBlock<MESpawnerBlockEntity> {
 
     public static final BooleanProperty ONLINE = BooleanProperty.create("online");
-    public static final MapCodec<MESpawnerBlock> CODEC = simpleCodec(MESpawnerBlock::new);
 
     public static final double MAX_POWER = 2_000_000;
     public static final double CHARGE_RATE = 200_000;
@@ -44,15 +30,15 @@ public class MESpawnerBlock extends BaseEntityBlock {
     public double getMaxPower() { return MAX_POWER; }
     public double getChargeRate() { return CHARGE_RATE; }
 
-    @Override protected MapCodec<? extends BaseEntityBlock> codec() { return CODEC; }
-    @Override public RenderShape getRenderShape(BlockState s) { return RenderShape.MODEL; }
-
     @Override
     public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean moved) {
         if (!state.is(newState.getBlock())) {
             if (level.getBlockEntity(pos) instanceof MESpawnerBlockEntity be) {
-                net.minecraft.world.Containers.dropContents(level, pos, be.eggSlot);
-                net.minecraft.world.Containers.dropContents(level, pos, be.cardSlots);
+                for (var stack : be.eggSlot) {
+                    net.minecraft.world.Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), stack);
+                }
+                be.getUpgrades().forEach(stack ->
+                        net.minecraft.world.Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), stack));
             }
         }
         super.onRemove(state, level, pos, newState, moved);
@@ -63,35 +49,15 @@ public class MESpawnerBlock extends BaseEntityBlock {
         b.add(ONLINE);
     }
 
-    @Nullable @Override
-    public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
-        return new MESpawnerBlockEntity(ModBlockEntities.ME_SPAWNER_BLOCK_ENTITY.get(), pos, state);
-    }
-
-    @Nullable @Override
-    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(
-            Level level, BlockState state, BlockEntityType<T> type) {
-        return null; // AE2 IGridTickable handles it
-    }
-
-    @Override
-    protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level,
-                                               BlockPos pos, Player player, InteractionHand hand,
-                                               BlockHitResult hit) {
-        // Wrench is handled by AE2's WrenchHook
-        if (!level.isClientSide()) {
-            MenuProvider mp = state.getMenuProvider(level, pos);
-            if (mp != null) player.openMenu(mp, pos);
-        }
-        return ItemInteractionResult.sidedSuccess(level.isClientSide());
-    }
-
     @Override
     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos,
                                                 Player player, BlockHitResult hit) {
+        var be = getBlockEntity(level, pos);
+        if (be == null) {
+            return InteractionResult.PASS;
+        }
         if (!level.isClientSide()) {
-            MenuProvider mp = state.getMenuProvider(level, pos);
-            if (mp != null) player.openMenu(mp, pos);
+            appeng.menu.MenuOpener.open(MESpawnerMenu.TYPE, player, MenuLocators.forBlockEntity(be));
         }
         return InteractionResult.sidedSuccess(level.isClientSide());
     }

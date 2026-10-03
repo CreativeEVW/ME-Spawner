@@ -10,12 +10,17 @@ import appeng.api.networking.ticking.IGridTickable;
 import appeng.api.networking.ticking.TickRateModulation;
 import appeng.api.networking.ticking.TickingRequest;
 import appeng.api.stacks.AEItemKey;
+import appeng.api.upgrades.IUpgradeInventory;
+import appeng.api.upgrades.IUpgradeableObject;
+import appeng.api.upgrades.UpgradeInventories;
 import appeng.api.util.AECableType;
 import appeng.blockentity.grid.AENetworkedBlockEntity;
 import appeng.core.definitions.AEItems;
 import appeng.me.energy.StoredEnergyAmount;
 import appeng.me.helpers.MachineSource;
 import appeng.util.Platform;
+import appeng.util.inv.AppEngInternalInventory;
+import appeng.util.inv.InternalInventoryHost;
 import com.example.mespawner.Config;
 import com.example.mespawner.block.MESpawnerBlock;
 import com.example.mespawner.menu.MESpawnerMenu;
@@ -30,7 +35,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.MenuProvider;
-import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -48,13 +52,16 @@ import org.jetbrains.annotations.Nullable;
 import java.util.EnumSet;
 
 public class MESpawnerBlockEntity extends AENetworkedBlockEntity
-        implements IAEPowerStorage, IGridTickable, MenuProvider {
+        implements IAEPowerStorage, IGridTickable, MenuProvider, IUpgradeableObject, InternalInventoryHost {
 
     private static final int BASE_COOLDOWN = 200; // 10s
+    public static final int MAX_UPGRADE_SLOTS = 8;
 
     private final StoredEnergyAmount stored;
-    public final SimpleContainer eggSlot = new SimpleContainer(1);
-    public final SimpleContainer cardSlots = new SimpleContainer(8);
+    public final AppEngInternalInventory eggSlot = new AppEngInternalInventory(this, 1);
+    private final IUpgradeInventory upgrades =
+            UpgradeInventories.forMachine(com.example.mespawner.registration.ModBlocks.ME_SPAWNER,
+                    MAX_UPGRADE_SLOTS, this::onUpgradesChanged);
 
     public MESpawnerBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
@@ -64,8 +71,32 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
                 .addService(IGridTickable.class, this);
         var b = (MESpawnerBlock) state.getBlock();
         stored = new StoredEnergyAmount(0, b.getMaxPower(), t -> setChanged());
-        eggSlot.addListener(c -> setChanged());
-        cardSlots.addListener(c -> setChanged());
+        eggSlot.setMaxStackSize(0, 1);
+    }
+
+    @Override
+    public IUpgradeInventory getUpgrades() {
+        return upgrades;
+    }
+
+    private void onUpgradesChanged() {
+        setChanged();
+        getMainNode().ifPresent((grid, node) -> grid.getTickManager().alertDevice(node));
+    }
+
+    @Override
+    public void saveChangedInventory(AppEngInternalInventory inv) {
+        setChanged();
+    }
+
+    @Override
+    public void onChangeInventory(AppEngInternalInventory inv, int slot) {
+        setChanged();
+    }
+
+    @Override
+    public boolean isClientSide() {
+        return level != null && level.isClientSide();
     }
 
     @Override
@@ -80,7 +111,7 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
         }).setExposedOnSides(EnumSet.allOf(Direction.class));
     }
 
-    @Override public AECableType getCableConnectionType(Direction d) { return AECableType.COVERED; }
+    @Override public AECableType getCableConnectionType(Direction d) { return AECableType.SMART; }
 
     // ===== IAEPowerStorage =====
     @Override public double injectAEPower(double a, Actionable m) {
@@ -105,8 +136,7 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
 
     private void process(ServerLevel lv, int ticksSinceLastCall) {
         tickCounter += ticksSinceLastCall;
-        int speedCount = 0;
-        for (int i = 4; i < 8; i++) if (!cardSlots.getItem(i).isEmpty()) speedCount++;
+        int speedCount = (int) upgrades.getInstalledUpgrades(AEItems.SPEED_CARD);
         int interval = getEffectiveCooldown(speedCount);
         if (tickCounter < interval) return;
         tickCounter = 0;
@@ -116,7 +146,7 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
         var grid = getMainNode().getGrid();
         if (grid == null) return;
 
-        var item = eggSlot.getItem(0);
+        var item = eggSlot.getStackInSlot(0);
         if (item.isEmpty()) return;
 
         // Collect entity types to process
@@ -137,7 +167,7 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
         if (Math.abs(extracted - totalCost) > 1) return;
 
         long lootingMult = getLootingMultiplier();
-        boolean hasProbability = !cardSlots.getItem(0).isEmpty();
+        boolean hasProbability = upgrades.isInstalled(ModItems.PROBABILITY_CARD);
         var src = new MachineSource(this);
         var inv = grid.getStorageService().getInventory();
 
@@ -176,6 +206,13 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
                 if (amt < 1) amt = 1;
                 inv.insert(key, amt, Actionable.MODULATE, src);
             }
+        }
+
+        // Bonus drops for special bosses (affected by looting multiplier)
+        if (type == EntityType.ENDER_DRAGON) {
+            inv.insert(AEItemKey.of(net.minecraft.world.item.Items.DRAGON_EGG), lootingMult, Actionable.MODULATE, src);
+        } else if (type == EntityType.WITHER) {
+            inv.insert(AEItemKey.of(net.minecraft.world.item.Items.NETHER_STAR), lootingMult, Actionable.MODULATE, src);
         }
     }
 
@@ -236,12 +273,16 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
     }
 
     private long getLootingMultiplier() {
+        // Collect all installed looting card multipliers and keep only the top 3
+        // (looting slots are a shared pool of 3 across all looting card tiers)
+        var multipliers = new java.util.ArrayList<Long>();
+        for (int i = 0; i < upgrades.getInstalledUpgrades(ModItems.ULTIMATE_LOOTING_CARD); i++) multipliers.add(9L);
+        for (int i = 0; i < upgrades.getInstalledUpgrades(ModItems.COMPRESSED_LOOTING_CARD); i++) multipliers.add(6L);
+        for (int i = 0; i < upgrades.getInstalledUpgrades(ModItems.LOOTING_CARD); i++) multipliers.add(2L);
+        multipliers.sort(java.util.Collections.reverseOrder());
         long mult = 1;
-        for (int i = 1; i < 4; i++) {
-            var item = cardSlots.getItem(i).getItem();
-            if (item == ModItems.LOOTING_CARD.get()) mult *= 2;
-            else if (item == ModItems.COMPRESSED_LOOTING_CARD.get()) mult *= 6;
-            else if (item == ModItems.ULTIMATE_LOOTING_CARD.get()) mult *= 9;
+        for (int i = 0; i < Math.min(3, multipliers.size()); i++) {
+            mult *= multipliers.get(i);
         }
         return mult;
     }
@@ -262,16 +303,13 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
     @Override public void saveAdditional(CompoundTag t, HolderLookup.Provider r) {
         super.saveAdditional(t, r); t.putDouble("pwr", stored.getAmount());
         var eggTag = new CompoundTag();
-        net.minecraft.world.ContainerHelper.saveAllItems(eggTag, eggSlot.getItems(), r);
-        t.put("egg", eggTag);
-        var cardTag = new CompoundTag();
-        net.minecraft.world.ContainerHelper.saveAllItems(cardTag, cardSlots.getItems(), r);
-        t.put("cards", cardTag);
+        eggSlot.writeToNBT(t, "egg", r);
+        upgrades.writeToNBT(t, "upgrades", r);
     }
     @Override public void loadTag(CompoundTag t, HolderLookup.Provider r) {
         super.loadTag(t, r); stored.setStored(t.getDouble("pwr"));
-        if (t.contains("egg")) net.minecraft.world.ContainerHelper.loadAllItems(t.getCompound("egg"), eggSlot.getItems(), r);
-        if (t.contains("cards")) net.minecraft.world.ContainerHelper.loadAllItems(t.getCompound("cards"), cardSlots.getItems(), r);
+        eggSlot.readFromNBT(t, "egg", r);
+        upgrades.readFromNBT(t, "upgrades", r);
     }
 
     // ===== Menu =====

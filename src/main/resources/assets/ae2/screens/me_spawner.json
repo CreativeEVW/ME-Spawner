@@ -1,0 +1,25 @@
+{
+  "$schema": "schema.json",
+  "includes": ["common/common.json", "common/player_inventory.json"],
+  "background": {
+    "texture": "mespawner:textures/gui/me_spawner.png",
+    "srcRect": [0, 0, 176, 168]
+  },
+  "slots": {
+    "STORAGE": {
+      "left": 80,
+      "top": 47
+    }
+  },
+  "text": {
+    "dialog_title": {
+      "text": {
+        "translate": "block.mespawner.me_spawner"
+      },
+      "position": {
+        "left": 8,
+        "top": 6
+      }
+    }
+  }
+}

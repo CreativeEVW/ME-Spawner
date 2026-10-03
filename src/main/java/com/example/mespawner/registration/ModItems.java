@@ -14,15 +14,15 @@ public class ModItems {
     public static final DeferredItem<BlockItem> ME_SPAWNER = ITEMS.register("me_spawner",
             () -> new BlockItem(ModBlocks.ME_SPAWNER.get(), new Item.Properties()));
 
-    // Upgrade cards
+    // Upgrade cards — must be AE2 UpgradeCardItem for native upgrade slots
     public static final DeferredItem<Item> PROBABILITY_CARD = ITEMS.register("probability_card",
-            () -> new Item(new Item.Properties().stacksTo(64)));
+            () -> appeng.api.upgrades.Upgrades.createUpgradeCardItem(new Item.Properties().stacksTo(64)));
     public static final DeferredItem<Item> LOOTING_CARD = ITEMS.register("looting_card",
-            () -> new Item(new Item.Properties().stacksTo(64)));
+            () -> appeng.api.upgrades.Upgrades.createUpgradeCardItem(new Item.Properties().stacksTo(64)));
     public static final DeferredItem<Item> COMPRESSED_LOOTING_CARD = ITEMS.register("compressed_looting_card",
-            () -> new Item(new Item.Properties().stacksTo(64)));
+            () -> appeng.api.upgrades.Upgrades.createUpgradeCardItem(new Item.Properties().stacksTo(64)));
     public static final DeferredItem<Item> ULTIMATE_LOOTING_CARD = ITEMS.register("ultimate_looting_card",
-            () -> new Item(new Item.Properties().stacksTo(64)));
+            () -> appeng.api.upgrades.Upgrades.createUpgradeCardItem(new Item.Properties().stacksTo(64)));
 
     // Spawner cells
     public static final DeferredItem<Item> SPAWNER_CELL_1K = ITEMS.register("spawner_cell_1k",
