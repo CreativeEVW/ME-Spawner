@@ -77,6 +77,10 @@ dependencies {
 
     // Jade - HUD overlay
     compileOnly "curse.maven:jade-324717:6853386"
+
+    // Apotheosis - optional compat (compileOnly from Modrinth, not bundled)
+    compileOnly "maven.modrinth:rqFWfVlz:1.21.1-8.9.0"   // Apotheosis
+    compileOnly "maven.modrinth:tCkE8p2N:1.21.1-9.9.2"  // Placebo
 }
 
 // Resource processing

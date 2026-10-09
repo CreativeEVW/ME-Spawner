@@ -20,6 +20,7 @@ public class MonsterDiskScreen extends Screen {
     private final Map<ResourceLocation, Integer> entries;
     private final int capacity;
     private final Map<ResourceLocation, Integer> formedCounts = new HashMap<>();
+    private final Map<ResourceLocation, Float> maxHealths = new HashMap<>();
     private final List<ResourceLocation> orderedKeys;
 
     private int scrollOffset = 0;
@@ -29,10 +30,10 @@ public class MonsterDiskScreen extends Screen {
         this.entries = entries;
         this.capacity = capacity;
         this.orderedKeys = new ArrayList<>(entries.keySet());
-        computeFormedCounts();
+        computeEntityInfo();
     }
 
-    private void computeFormedCounts() {
+    private void computeEntityInfo() {
         var level = Minecraft.getInstance().level;
         if (level == null) return;
         for (var key : entries.keySet()) {
@@ -43,12 +44,13 @@ public class MonsterDiskScreen extends Screen {
             if (entity instanceof LivingEntity living) {
                 maxHealth = living.getMaxHealth();
             }
+            maxHealths.put(key, (float) maxHealth);
             formedCounts.put(key, (int) Math.floor(1000.0 / maxHealth));
         }
     }
 
     private int getVisibleCount() {
-        return Math.max(1, (this.height - 60) / 20);
+        return Math.max(1, (this.height - 60) / 28);
     }
 
     private int getMaxScroll() {
@@ -86,14 +88,14 @@ public class MonsterDiskScreen extends Screen {
 
             int kills = entries.get(key);
             int n = formedCounts.getOrDefault(key, Integer.MAX_VALUE);
-            if (kills > n) {
-                g.drawString(this.font, Component.translatable("item.mespawner.monster_disk.formed"),
-                        cx + 60, y, 0x55FF55, false);
-            } else {
-                g.drawString(this.font, Component.literal(String.valueOf(kills)), cx + 60, y, 0xFFFFFF, false);
-            }
+            int color = kills > n ? 0x55FF55 : 0xFFFF55; // green if formed, yellow otherwise
+            g.drawString(this.font, Component.literal(kills + "/" + n), cx + 60, y, color, false);
 
-            y += 20;
+            // Second line: gray max health
+            float health = maxHealths.getOrDefault(key, 20.0f);
+            g.drawString(this.font, Component.literal("生命值: " + health), cx - 58, y + 12, 0xAAAAAA, false);
+
+            y += 28;
         }
 
         drawScrollbar(g);
@@ -108,10 +110,8 @@ public class MonsterDiskScreen extends Screen {
         int trackHeight = trackBottom - trackTop;
         int trackX = this.width - 8;
 
-        // Track
         g.fill(trackX, trackTop, trackX + 4, trackBottom, 0x33FFFFFF);
 
-        // Thumb
         float ratio = (float) scrollOffset / maxScroll;
         int thumbHeight = Math.max(20, (int) (trackHeight * ((float) getVisibleCount() / entries.size())));
         int thumbTop = trackTop + (int) ((trackHeight - thumbHeight) * ratio);

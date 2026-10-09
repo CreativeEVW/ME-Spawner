@@ -5,20 +5,15 @@ import appeng.api.upgrades.Upgrades;
 import appeng.blockentity.AEBaseBlockEntity;
 import appeng.core.definitions.AEItems;
 import com.example.mespawner.item.MonsterDiskItem;
-import com.example.mespawner.menu.MESpawnerScreen;
 import com.example.mespawner.registration.*;
-import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
-import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
-import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import org.slf4j.Logger;
@@ -38,11 +33,10 @@ public class MESpawner {
         ModBlockEntities.BLOCK_ENTITIES.register(modEventBus);
         ModMenuTypes.MENU_TYPES.register(modEventBus);
         ModCreativeTabs.CREATIVE_TABS.register(modEventBus);
+        ModRecipes.RECIPE_SERIALIZERS.register(modEventBus);
 
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::registerCapabilities);
-        modEventBus.addListener(this::registerScreens);
-        modEventBus.addListener(this::clientSetup);
 
         NeoForge.EVENT_BUS.addListener(this::onEntityInteract);
     }
@@ -71,18 +65,6 @@ public class MESpawner {
         event.setCancellationResult(net.minecraft.world.InteractionResult.sidedSuccess(event.getLevel().isClientSide()));
     }
 
-    private void clientSetup(FMLClientSetupEvent event) {
-        var prop = ResourceLocation.fromNamespaceAndPath(MOD_ID, "fill_state");
-        for (var disk : new MonsterDiskItem[]{
-                ModItems.MONSTER_DISK_1K.get(),
-                ModItems.MONSTER_DISK_4K.get(),
-                ModItems.MONSTER_DISK_16K.get(),
-                ModItems.MONSTER_DISK_64K.get(),
-                ModItems.MONSTER_DISK_256K.get()}) {
-            ItemProperties.register(disk, prop, (stack, level, entity, seed) -> disk.getFillState(stack));
-        }
-    }
-
     private void commonSetup(FMLCommonSetupEvent event) {
         var block = ModBlocks.ME_SPAWNER.get();
         var beType = ModBlockEntities.ME_SPAWNER_BLOCK_ENTITY.get();
@@ -105,17 +87,5 @@ public class MESpawner {
                 AECapabilities.IN_WORLD_GRID_NODE_HOST,
                 ModBlockEntities.ME_SPAWNER_BLOCK_ENTITY.get(),
                 (be, ctx) -> be);
-    }
-
-    private void registerScreens(RegisterMenuScreensEvent event) {
-        event.register(com.example.mespawner.menu.MESpawnerMenu.TYPE, MESpawner::createMESpawnerScreen);
-    }
-
-    private static MESpawnerScreen createMESpawnerScreen(
-            com.example.mespawner.menu.MESpawnerMenu menu,
-            net.minecraft.world.entity.player.Inventory inv,
-            net.minecraft.network.chat.Component title) {
-        var style = appeng.client.gui.style.StyleManager.loadStyleDoc("/screens/me_spawner.json");
-        return new MESpawnerScreen(menu, inv, title, style);
     }
 }

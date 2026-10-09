@@ -37,6 +37,9 @@ public class MESpawnerBlock extends AEBaseEntityBlock<MESpawnerBlockEntity> {
                 for (var stack : be.eggSlot) {
                     net.minecraft.world.Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), stack);
                 }
+                for (var stack : be.weaponSlot) {
+                    net.minecraft.world.Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), stack);
+                }
                 be.getUpgrades().forEach(stack ->
                         net.minecraft.world.Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), stack));
             }

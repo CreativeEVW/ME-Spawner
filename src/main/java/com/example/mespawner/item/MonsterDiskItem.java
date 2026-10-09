@@ -62,6 +62,13 @@ public class MonsterDiskItem extends Item {
         return count >= capacity ? 2 : 1;
     }
 
+    /** Write an entity entry with the given kill count (used by the disk+egg crafting recipe). */
+    public void writeEntityEntry(ItemStack stack, ResourceLocation entityKey, int killCount) {
+        var entries = new TreeMap<>(getEntries(stack));
+        entries.put(entityKey, killCount);
+        setEntries(stack, entries);
+    }
+
     /** Compute the "formed" kill count threshold: n = floor(1000 / maxHealth). */
     public static int getFormedKillCount(net.minecraft.world.entity.EntityType<?> type, Level level) {
         double maxHealth = 20.0;
@@ -76,8 +83,9 @@ public class MonsterDiskItem extends Item {
     public java.util.List<net.minecraft.world.entity.EntityType<?>> getFormedEntityTypes(ItemStack stack, Level level) {
         var formed = new java.util.ArrayList<net.minecraft.world.entity.EntityType<?>>();
         for (var entry : getEntries(stack).entrySet()) {
+            // ENTITY_TYPE.get() returns the default (Pig) for unknown ids — check containsKey first
+            if (!BuiltInRegistries.ENTITY_TYPE.containsKey(entry.getKey())) continue;
             var type = BuiltInRegistries.ENTITY_TYPE.get(entry.getKey());
-            if (type == null) continue;
             if (entry.getValue() > getFormedKillCount(type, level)) {
                 formed.add(type);
             }
@@ -95,14 +103,16 @@ public class MonsterDiskItem extends Item {
         return 0;
     }
 
-    /** Record the player's kill stats for all stored IDs (set, not add). */
+    /** Sync the player's kill stats into the disk, never lowering existing values (set, not add). */
     public void recordStats(ItemStack stack, Player player) {
         if (player instanceof ServerPlayer sp) {
             var updated = new TreeMap<ResourceLocation, Integer>();
             for (var entry : getEntries(stack).entrySet()) {
+                // ENTITY_TYPE.get() returns the default (Pig) for unknown ids — check containsKey first
+                if (!BuiltInRegistries.ENTITY_TYPE.containsKey(entry.getKey())) continue;
                 var type = BuiltInRegistries.ENTITY_TYPE.get(entry.getKey());
-                if (type == null) continue;
-                updated.put(entry.getKey(), sp.getStats().getValue(Stats.ENTITY_KILLED.get(type)));
+                // Keep the disk's value when the player's stats are lower (e.g. entries formed via crafting).
+                updated.put(entry.getKey(), Math.max(entry.getValue(), sp.getStats().getValue(Stats.ENTITY_KILLED.get(type))));
             }
             setEntries(stack, updated);
             sp.displayClientMessage(Component.translatable("item.mespawner.monster_disk.recorded"), true);
@@ -126,8 +136,7 @@ public class MonsterDiskItem extends Item {
     }
 
     private void openListScreen(ItemStack stack, Map<ResourceLocation, Integer> entries) {
-        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-        mc.setScreen(new com.example.mespawner.client.MonsterDiskScreen(
-                Component.translatable("item.mespawner.monster_disk"), entries, capacity));
+        // Client-only class: only loaded on the client (guarded by isClientSide above)
+        com.example.mespawner.client.ClientEvents.openMonsterDiskScreen(entries, capacity);
     }
 }

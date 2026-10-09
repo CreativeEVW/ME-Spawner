@@ -1,13 +1,17 @@
 {
   "$schema": "schema.json",
-  "includes": ["common/common.json", "common/player_inventory.json"],
+  "includes": ["common/common.json", "common/player_inventory.json", "common/toolbox.json"],
   "background": {
     "texture": "mespawner:textures/gui/me_spawner.png",
     "srcRect": [0, 0, 176, 168]
   },
   "slots": {
     "STORAGE": {
-      "left": 80,
+      "left": 62,
+      "top": 47
+    },
+    "WEAPON": {
+      "left": 98,
       "top": 47
     }
   },
@@ -19,6 +23,18 @@
       "position": {
         "left": 8,
         "top": 6
+      }
+    },
+    "status": {
+      "position": {
+        "left": 8,
+        "top": 20
+      }
+    },
+    "power_usage": {
+      "position": {
+        "left": 8,
+        "top": 32
       }
     }
   }
