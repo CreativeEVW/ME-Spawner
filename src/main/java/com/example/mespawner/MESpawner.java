@@ -39,6 +39,8 @@ public class MESpawner {
         modEventBus.addListener(this::registerCapabilities);
 
         NeoForge.EVENT_BUS.addListener(this::onEntityInteract);
+        NeoForge.EVENT_BUS.addListener(this::onAddReloadListener);
+        NeoForge.EVENT_BUS.addListener(this::onServerStopping);
     }
 
     private void onEntityInteract(PlayerInteractEvent.EntityInteract event) {
@@ -80,6 +82,18 @@ public class MESpawner {
         Upgrades.add(ModItems.COMPRESSED_LOOTING_CARD.get(), block, 3);
         Upgrades.add(ModItems.ULTIMATE_LOOTING_CARD.get(), block, 3);
         Upgrades.add(AEItems.SPEED_CARD, block, 4);
+    }
+
+    /** Drop cached loot-table expansions when the resource manager reloads (tables are replaced). */
+    private void onAddReloadListener(net.neoforged.neoforge.event.AddReloadListenerEvent event) {
+        event.addListener((net.minecraft.server.packs.resources.ResourceManagerReloadListener) manager ->
+                com.example.mespawner.blockentity.MESpawnerBlockEntity.clearExpansionCache());
+    }
+
+    /** Release session caches when the server stops. */
+    private void onServerStopping(net.neoforged.neoforge.event.server.ServerStoppingEvent event) {
+        com.example.mespawner.blockentity.MESpawnerBlockEntity.clearExpansionCache();
+        com.example.mespawner.util.ExtraDropsStorage.clearCache();
     }
 
     private void registerCapabilities(RegisterCapabilitiesEvent event) {

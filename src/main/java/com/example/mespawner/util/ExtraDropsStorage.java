@@ -31,7 +31,24 @@ public class ExtraDropsStorage {
                 .resolve(entityId.getNamespace() + "__" + entityId.getPath() + ".json");
     }
 
+    /** In-memory cache per (level, entity): the file is read once per session, writes still go through immediately. */
+    private static final Map<ServerLevel, Map<ResourceLocation, Map<AEItemKey, Long>>> CACHE = new HashMap<>();
+
     public static Map<AEItemKey, Long> load(ServerLevel level, ResourceLocation entityId) {
+        var perLevel = CACHE.computeIfAbsent(level, k -> new HashMap<>());
+        var cached = perLevel.get(entityId);
+        if (cached != null) return cached;
+        var loaded = loadFromFile(level, entityId);
+        perLevel.put(entityId, loaded);
+        return loaded;
+    }
+
+    /** Release all cached learned drops (called when the server stops). */
+    public static void clearCache() {
+        CACHE.clear();
+    }
+
+    private static Map<AEItemKey, Long> loadFromFile(ServerLevel level, ResourceLocation entityId) {
         var result = new HashMap<AEItemKey, Long>();
         var file = getFile(level, entityId);
         try {

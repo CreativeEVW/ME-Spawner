@@ -269,6 +269,25 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
         return net.neoforged.fml.ModList.get().isLoaded("apotheosis");
     }
 
+    /**
+     * Loot tables are immutable after datapack load: cache the (reflection-based)
+     * static expansion per table so it is only computed once per session.
+     */
+    private static final java.util.Map<LootTable, java.util.Map<AEItemKey, Long>> EXPANSION_CACHE = new java.util.HashMap<>();
+
+    /** Called on datapack reload: loot table objects are replaced, so drop the cached expansions. */
+    public static void clearExpansionCache() {
+        EXPANSION_CACHE.clear();
+    }
+
+    private java.util.Map<AEItemKey, Long> getExpandedDrops(ServerLevel lv, LootTable table, LootParams params) {
+        var cached = EXPANSION_CACHE.get(table);
+        if (cached != null) return cached;
+        var expanded = staticallyExpandLootTable(lv, table, params, new java.util.HashMap<>());
+        EXPANSION_CACHE.put(table, expanded);
+        return expanded;
+    }
+
     private void processEntityType(ServerLevel lv, EntityType<?> type, boolean hasProbability,
                                    long lootingMult, MachineSource src, appeng.api.storage.MEStorage inv) {
         var lootTable = lv.getServer().reloadableRegistries().getLootTable(type.getDefaultLootTable());
@@ -281,7 +300,7 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
         if (hasProbability) {
             // Probability card: products come ONLY from the loot table (static expansion
             // + learned extra drops). No boss bonus or other operations.
-            var expanded = staticallyExpandLootTable(lv, lootTable, params, new java.util.HashMap<>());
+            var expanded = getExpandedDrops(lv, lootTable, params);
 
             // Produce from static expansion (skip Apotheosis gems — handled by weapon bonus)
             for (var entry : expanded.entrySet()) {
