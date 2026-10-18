@@ -1,5 +1,7 @@
 package com.example.mespawner.menu;
 
+import appeng.api.config.YesNo;
+import appeng.api.util.IConfigManager;
 import appeng.menu.SlotSemantic;
 import appeng.menu.SlotSemantics;
 import appeng.menu.guisync.GuiSync;
@@ -7,7 +9,9 @@ import appeng.menu.implementations.MenuTypeBuilder;
 import appeng.menu.implementations.UpgradeableMenu;
 import appeng.menu.slot.AppEngSlot;
 import com.example.mespawner.MESpawner;
+import com.example.mespawner.api.MESettings;
 import com.example.mespawner.blockentity.MESpawnerBlockEntity;
+import com.example.mespawner.menu.helper.DirectionSet;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
@@ -16,6 +20,8 @@ import net.minecraft.world.item.DiggerItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.SwordItem;
+
+import java.util.ArrayList;
 
 public class MESpawnerMenu extends UpgradeableMenu<MESpawnerBlockEntity> {
 
@@ -30,9 +36,24 @@ public class MESpawnerMenu extends UpgradeableMenu<MESpawnerBlockEntity> {
     public int status;
     @GuiSync(21)
     public long powerUsage;
+    @GuiSync(22)
+    public YesNo meExport = YesNo.YES;
+    @GuiSync(23)
+    public DirectionSet outputSides = new DirectionSet(new ArrayList<>());
 
     public MESpawnerMenu(int id, Inventory playerInventory, MESpawnerBlockEntity host) {
         super(TYPE, id, playerInventory, host);
+    }
+
+    @Override
+    protected void loadSettingsFromHost(IConfigManager cm) {
+        this.meExport = this.getHost().getConfigManager().getSetting(MESettings.ME_EXPORT);
+        this.outputSides.clear();
+        this.outputSides.addAll(this.getHost().getOutputSides());
+    }
+
+    public java.util.List<net.minecraft.core.Direction> getOutputSides() {
+        return outputSides.sides();
     }
 
     @Override

@@ -37,6 +37,7 @@ public class MESpawner {
 
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::registerCapabilities);
+        modEventBus.addListener(this::onRegisterPayloads);
 
         NeoForge.EVENT_BUS.addListener(this::onEntityInteract);
         NeoForge.EVENT_BUS.addListener(this::onAddReloadListener);
@@ -101,5 +102,23 @@ public class MESpawner {
                 AECapabilities.IN_WORLD_GRID_NODE_HOST,
                 ModBlockEntities.ME_SPAWNER_BLOCK_ENTITY.get(),
                 (be, ctx) -> be);
+        // FE input via AE2's ForgeEnergyAdapter (same pattern as AE2's charger/inscriber)
+        event.registerBlockEntity(
+                net.neoforged.neoforge.capabilities.Capabilities.EnergyStorage.BLOCK,
+                ModBlockEntities.ME_SPAWNER_BLOCK_ENTITY.get(),
+                (be, side) -> be.getEnergyStorage(side));
+    }
+
+    /** Register serverbound payloads (config-button cycling and output-side toggles). */
+    private void onRegisterPayloads(net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent event) {
+        var registrar = event.registrar(MESpawner.MOD_ID);
+        registrar.playToServer(
+                com.example.mespawner.network.MEConfigButtonPacket.TYPE,
+                com.example.mespawner.network.MEConfigButtonPacket.STREAM_CODEC,
+                com.example.mespawner.network.MEConfigButtonPacket::handle);
+        registrar.playToServer(
+                com.example.mespawner.network.MEOutputSidePacket.TYPE,
+                com.example.mespawner.network.MEOutputSidePacket.STREAM_CODEC,
+                com.example.mespawner.network.MEOutputSidePacket::handle);
     }
 }

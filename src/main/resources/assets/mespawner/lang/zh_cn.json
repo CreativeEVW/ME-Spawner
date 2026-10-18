@@ -25,5 +25,13 @@
   "item.mespawner.monster_disk.full": "磁盘已满",
   "item.mespawner.monster_disk.recorded": "已同步击杀数据",
   "item.mespawner.monster_disk.formed": "已成型",
-  "config.jade.plugin_mespawner.info": "ME刷怪笼"
+  "config.jade.plugin_mespawner.info": "ME刷怪笼",
+  "gui.mespawner.me_export": "存储模式",
+  "gui.mespawner.me_export.on": "产物输出到ME网络。",
+  "gui.mespawner.me_export.off": "产物仅输出到允许输出的相邻容器，容器满则不输出。",
+  "gui.mespawner.set_output_sides": "输出方向",
+  "gui.mespawner.set_output_sides.on": "启用",
+  "gui.mespawner.set_output_sides.off": "禁用",
+  "gui.mespawner.set_output_sides.open": "打开输出配置",
+  "gui.mespawner.set_output_sides.clear": "清空"
 }

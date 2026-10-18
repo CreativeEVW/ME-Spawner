@@ -2,6 +2,9 @@ package com.example.mespawner.blockentity;
 
 import appeng.api.config.Actionable;
 import appeng.api.config.PowerMultiplier;
+import appeng.api.config.PowerUnit;
+import appeng.api.config.Setting;
+import appeng.api.config.YesNo;
 import appeng.api.networking.*;
 import appeng.api.networking.IGridNodeListener.State;
 import appeng.api.networking.energy.IAEPowerStorage;
@@ -14,14 +17,20 @@ import appeng.api.upgrades.IUpgradeInventory;
 import appeng.api.upgrades.IUpgradeableObject;
 import appeng.api.upgrades.UpgradeInventories;
 import appeng.api.util.AECableType;
+import appeng.api.util.IConfigManager;
+import appeng.api.util.IConfigurableObject;
 import appeng.blockentity.grid.AENetworkedBlockEntity;
+import appeng.blockentity.powersink.IExternalPowerSink;
+import appeng.helpers.ForgeEnergyAdapter;
 import appeng.core.definitions.AEItems;
 import appeng.me.energy.StoredEnergyAmount;
 import appeng.me.helpers.MachineSource;
+import appeng.util.ConfigManager;
 import appeng.util.Platform;
 import appeng.util.inv.AppEngInternalInventory;
 import appeng.util.inv.InternalInventoryHost;
 import com.example.mespawner.Config;
+import com.example.mespawner.api.MESettings;
 import com.example.mespawner.block.MESpawnerBlock;
 import com.example.mespawner.menu.MESpawnerMenu;
 import com.example.mespawner.registration.ModBlockEntities;
@@ -31,6 +40,8 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -47,12 +58,16 @@ import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.energy.IEnergyStorage;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.EnumSet;
+import java.util.List;
+import java.util.Set;
 
 public class MESpawnerBlockEntity extends AENetworkedBlockEntity
-        implements IAEPowerStorage, IGridTickable, MenuProvider, IUpgradeableObject, InternalInventoryHost {
+        implements IAEPowerStorage, IExternalPowerSink, IGridTickable, MenuProvider, IUpgradeableObject, IConfigurableObject, InternalInventoryHost {
 
     private static final int BASE_COOLDOWN = 200; // 10s
     public static final int MAX_UPGRADE_SLOTS = 8;
@@ -64,6 +79,15 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
             UpgradeInventories.forMachine(com.example.mespawner.registration.ModBlocks.ME_SPAWNER,
                     MAX_UPGRADE_SLOTS, this::onUpgradesChanged);
 
+    /** Storage mode: ME_EXPORT = YES inserts products into the ME network, NO pushes them to adjacent containers. */
+    private final ConfigManager configManager = new ConfigManager(this::onConfigChanged);
+
+    /** Sides products are pushed to when in adjacent-container mode. */
+    private final Set<Direction> outputSides = EnumSet.noneOf(Direction.class);
+
+    /** AE2-style FE adapter: external cables can feed the internal AE buffer (1 AE = 2 FE). */
+    private final IEnergyStorage forgeEnergyAdapter = new ForgeEnergyAdapter(this);
+
     public MESpawnerBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
         this.getMainNode()
@@ -74,6 +98,31 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
         stored = new StoredEnergyAmount(0, b.getMaxPower(), t -> setChanged());
         eggSlot.setMaxStackSize(0, 1);
         weaponSlot.setMaxStackSize(0, 1);
+        this.configManager.registerSetting(MESettings.ME_EXPORT, YesNo.YES);
+        this.outputSides.addAll(List.of(Direction.values()));
+    }
+
+    @Override
+    public IConfigManager getConfigManager() {
+        return configManager;
+    }
+
+    private void onConfigChanged(IConfigManager manager, Setting<?> setting) {
+        saveChanges();
+        getMainNode().ifPresent((grid, node) -> grid.getTickManager().wakeDevice(node));
+    }
+
+    public Set<Direction> getOutputSides() {
+        return outputSides;
+    }
+
+    public void setOutputSide(Direction side, boolean value) {
+        if (value) {
+            this.outputSides.add(side);
+        } else {
+            this.outputSides.remove(side);
+        }
+        onConfigChanged(null, null);
     }
 
     @Override
@@ -108,7 +157,7 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
             @Override public void onStateChanged(MESpawnerBlockEntity o, IGridNode n, State s) {
                 if (o.level != null && !o.level.isClientSide())
                     MESpawnerBlock.setOnline(o.level, o.worldPosition,
-                            o.getBlockState(), n.isActive());
+                            o.getBlockState(), n.isActive() || o.hasBufferPower());
             }
         }).setExposedOnSides(EnumSet.allOf(Direction.class));
     }
@@ -124,7 +173,7 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
     }
     @Override public double getAEMaxPower() { return stored.getMaximum(); }
     @Override public double getAECurrentPower() { return stored.getAmount(); }
-    @Override public boolean isAEPublicPowerStorage() { return true; }
+    @Override public boolean isAEPublicPowerStorage() { return false; } // private buffer, fed by FE input
     @Override public appeng.api.config.AccessRestriction getPowerFlow() { return appeng.api.config.AccessRestriction.READ_WRITE; }
 
     // ===== IGridTickable =====
@@ -132,6 +181,29 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
     @Override public TickRateModulation tickingRequest(IGridNode n, int t) {
         if (getLevel() instanceof ServerLevel sl) process(sl, t);
         return TickRateModulation.IDLE;
+    }
+
+    // ===== IExternalPowerSink (copied from AE2's AEBasePoweredBlockEntity) =====
+
+    @Override
+    public double injectExternalPower(PowerUnit input, double amount, Actionable mode) {
+        return PowerUnit.AE.convertTo(input, injectAEPower(input.convertTo(PowerUnit.AE, amount), mode));
+    }
+
+    @Override
+    public double getExternalPowerDemand(PowerUnit externalUnit, double maxPowerRequired) {
+        return PowerUnit.AE.convertTo(externalUnit,
+                Math.max(0.0, getAEMaxPower() - getAECurrentPower()));
+    }
+
+    /**
+     * FE capability endpoint. Copied from AE2's AEBasePoweredBlockEntity: null-side queries
+     * (e.g. Jade's generic lookup) get null, so no FE slot is displayed; only side-specific
+     * access from FE cables/pipes receives the adapter.
+     */
+    public IEnergyStorage getEnergyStorage(Direction side) {
+        if (side == null) return null;
+        return forgeEnergyAdapter;
     }
 
     private int tickCounter;
@@ -143,25 +215,31 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
         if (tickCounter < interval) return;
         tickCounter = 0;
 
-        if (!getMainNode().isActive()) return;
-
-        var grid = getMainNode().getGrid();
-        if (grid == null) return;
-
         var types = collectTypes(lv);
         if (types.isEmpty()) return;
 
-        // Draw power (per entity type)
-        var energyGrid = grid.getEnergyService();
+        var grid = getMainNode().getGrid();
+        boolean gridActive = grid != null && getMainNode().isActive();
+        // Offline (no active network): products can only go to adjacent containers
+        if (!gridActive && outputSides.isEmpty()) return;
+
+        // Draw power: internal buffer first (FE input, works offline), the grid covers the deficit
         long totalCost = (long) Config.spawnEnergyCost * types.size();
-        var extracted = energyGrid.extractAEPower(totalCost, Actionable.MODULATE,
-                appeng.api.config.PowerMultiplier.CONFIG);
-        if (Math.abs(extracted - totalCost) > 1) return;
+        double extracted = extractAEPower(totalCost, Actionable.MODULATE, PowerMultiplier.CONFIG);
+        double deficit = totalCost - extracted;
+        if (deficit > 1) {
+            double fromGrid = 0;
+            if (gridActive) {
+                fromGrid = grid.getEnergyService().extractAEPower(deficit, Actionable.MODULATE,
+                        PowerMultiplier.CONFIG);
+            }
+            if (extracted + fromGrid < totalCost - 1) return; // insufficient power anywhere
+        }
 
         long lootingMult = getLootingMultiplier();
         boolean hasProbability = upgrades.isInstalled(ModItems.PROBABILITY_CARD);
         var src = new MachineSource(this);
-        var inv = grid.getStorageService().getInventory();
+        appeng.api.storage.MEStorage inv = gridActive ? grid.getStorageService().getInventory() : null;
 
         // Process each entity type in parallel
         for (var type : types) {
@@ -174,11 +252,20 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
         if (!weapon.isEmpty() && hasApotheosis()) {
             com.example.mespawner.compat.ApotheosisCompat.generateBonus(lv, weapon, stack -> {
                 var key = AEItemKey.of(stack);
-                if (key != null) inv.insert(key, stack.getCount(), Actionable.MODULATE, src);
+                if (key != null) insertOrExport(inv, key, stack.getCount(), src);
             });
         }
 
+        // Texture: operational = connected to an active network OR the buffer can run the machine
+        MESpawnerBlock.setOnline(lv, worldPosition, getBlockState(),
+                gridActive || hasBufferPower());
+
         setChanged();
+    }
+
+    /** Whether the internal buffer alone can power one operation (offline/FE-fed state). */
+    private boolean hasBufferPower() {
+        return getAECurrentPower() >= Config.spawnEnergyCost;
     }
 
     /** Collect the entity types currently selected for processing (egg or formed disk mobs). */
@@ -201,13 +288,19 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
         var types = collectTypes(lv);
         if (types.isEmpty()) return 0; // nothing to process → idle
 
-        var grid = getMainNode().getGrid();
-        if (grid == null || !getMainNode().isActive()) return 2;
-
         long required = (long) Config.spawnEnergyCost * types.size();
-        double extracted = grid.getEnergyService().extractAEPower(required, Actionable.SIMULATE,
-                appeng.api.config.PowerMultiplier.CONFIG);
-        if (Math.abs(extracted - required) > 1) return 2;
+
+        // Energy check: internal buffer first (FE input, works offline), then the AE network.
+        double available = Math.min(required, getAECurrentPower());
+        double deficit = required - available;
+        if (deficit > 1) {
+            var grid = getMainNode().getGrid();
+            if (grid != null && getMainNode().isActive()) {
+                available += grid.getEnergyService().extractAEPower(deficit, Actionable.SIMULATE,
+                        PowerMultiplier.CONFIG);
+            }
+        }
+        if (available < required - 1) return 2; // both buffer and network lack energy
 
         return 1;
     }
@@ -308,7 +401,7 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
                         && com.example.mespawner.compat.ApotheosisCompat.isGemItem(entry.getKey())) {
                     continue;
                 }
-                inv.insert(entry.getKey(), entry.getValue() * lootingMult, Actionable.MODULATE, src);
+                insertOrExport(inv, entry.getKey(), entry.getValue() * lootingMult, src);
             }
 
             // Produce learned extra drops (from previous normal rolls)
@@ -324,7 +417,7 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
             }
             for (var entry : extras.entrySet()) {
                 if (entry.getKey() == null) continue; // defensive: never insert a null key
-                inv.insert(entry.getKey(), entry.getValue() * lootingMult, Actionable.MODULATE, src);
+                insertOrExport(inv, entry.getKey(), entry.getValue() * lootingMult, src);
             }
 
             // Learn: roll the normal production logic once (no production) and save
@@ -358,16 +451,16 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
                 if (key == null) continue;
                 long amt = drop.getCount() * lootingMult;
                 if (amt < 1) amt = 1;
-                inv.insert(key, amt, Actionable.MODULATE, src);
+                insertOrExport(inv, key, amt, src);
             }
         }
 
         // Bonus drops for special bosses — manually-added fake loot table entries,
         // applied in both probability and normal production (affected by looting multiplier)
         if (type == EntityType.ENDER_DRAGON) {
-            inv.insert(AEItemKey.of(net.minecraft.world.item.Items.DRAGON_EGG), lootingMult, Actionable.MODULATE, src);
+            insertOrExport(inv, AEItemKey.of(net.minecraft.world.item.Items.DRAGON_EGG), lootingMult, src);
         } else if (type == EntityType.WITHER) {
-            inv.insert(AEItemKey.of(net.minecraft.world.item.Items.NETHER_STAR), lootingMult, Actionable.MODULATE, src);
+            insertOrExport(inv, AEItemKey.of(net.minecraft.world.item.Items.NETHER_STAR), lootingMult, src);
         }
     }
 
@@ -519,25 +612,71 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
         return base;
     }
 
-    private void insertIntoNetwork(IStorageService storage, ItemStack drop, long amount, MachineSource src) {
-        var key = AEItemKey.of(drop);
-        if (key == null) return;
-        storage.getInventory().insert(key, amount, Actionable.MODULATE, src);
+    /**
+     * Route products per the storage-mode setting: ME network (default) or adjacent containers
+     * on the configured output sides. Adjacent mode is strict: products ONLY go to the
+     * containers, whatever does not fit is dropped (never falls back to the ME network).
+     */
+    private void insertOrExport(@Nullable appeng.api.storage.MEStorage inv, AEItemKey key, long amount, MachineSource src) {
+        // Offline (no network) or adjacent mode: products only go to the containers
+        if (inv == null || configManager.getSetting(MESettings.ME_EXPORT) == YesNo.NO) {
+            if (!outputSides.isEmpty() && level != null) {
+                exportToAdjacent(key, amount);
+            }
+            return;
+        }
+        inv.insert(key, amount, Actionable.MODULATE, src);
+    }
+
+    /** Push as much of the given key into adjacent containers on the output sides; returns the leftover amount. */
+    private long exportToAdjacent(AEItemKey key, long amount) {
+        long remaining = amount;
+        int maxStack = key.getItem().getDefaultMaxStackSize();
+        for (Direction dir : outputSides) {
+            if (remaining <= 0) break;
+            var handler = level.getCapability(Capabilities.ItemHandler.BLOCK, worldPosition.relative(dir), dir.getOpposite());
+            if (handler == null) continue;
+            while (remaining > 0) {
+                int batch = (int) Math.min(remaining, maxStack);
+                var leftover = key.toStack(batch);
+                for (int i = 0; i < handler.getSlots() && !leftover.isEmpty(); i++) {
+                    leftover = handler.insertItem(i, leftover, false);
+                }
+                int inserted = batch - leftover.getCount();
+                if (inserted <= 0) break; // container full (or won't accept this item)
+                remaining -= inserted;
+            }
+        }
+        return remaining;
     }
 
     // ===== NBT =====
     @Override public void saveAdditional(CompoundTag t, HolderLookup.Provider r) {
         super.saveAdditional(t, r); t.putDouble("pwr", stored.getAmount());
-        var eggTag = new CompoundTag();
         eggSlot.writeToNBT(t, "egg", r);
         weaponSlot.writeToNBT(t, "weapon", r);
         upgrades.writeToNBT(t, "upgrades", r);
+        configManager.writeToNBT(t, r);
+        var sides = new ListTag();
+        for (var side : this.outputSides) {
+            sides.add(StringTag.valueOf(side.getName()));
+        }
+        t.put("output_side", sides);
     }
     @Override public void loadTag(CompoundTag t, HolderLookup.Provider r) {
         super.loadTag(t, r); stored.setStored(t.getDouble("pwr"));
         eggSlot.readFromNBT(t, "egg", r);
         weaponSlot.readFromNBT(t, "weapon", r);
         upgrades.readFromNBT(t, "upgrades", r);
+        configManager.readFromNBT(t, r);
+        this.outputSides.clear();
+        if (t.contains("output_side")) {
+            for (var name : t.getList("output_side", CompoundTag.TAG_STRING)) {
+                this.outputSides.add(Direction.byName(name.getAsString()));
+            }
+        } else {
+            this.outputSides.addAll(List.of(Direction.values()));
+        }
     }
 
     // ===== Menu =====
