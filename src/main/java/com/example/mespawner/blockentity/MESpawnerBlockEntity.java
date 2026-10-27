@@ -208,12 +208,38 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
 
     private int tickCounter;
 
+    /** Acceleration perception: banked counter-fills since the last real-time work cycle. */
+    private int fillsSinceWork = 0;
+
+    /** Real-time timestamp of the last work cycle (System.nanoTime). */
+    private long lastWorkNanos = 0;
+
     private void process(ServerLevel lv, int ticksSinceLastCall) {
         tickCounter += ticksSinceLastCall;
         int speedCount = (int) upgrades.getInstalledUpgrades(AEItems.SPEED_CARD);
         int interval = getEffectiveCooldown(speedCount);
         if (tickCounter < interval) return;
+
+        // Consume completed interval(s): each is one banked "fill". Surplus (unacknowledged
+        // acceleration) is discarded.
+        int fills = 0;
+        while (tickCounter >= interval && fills < 64) {
+            tickCounter -= interval;
+            fills++;
+        }
         tickCounter = 0;
+        fillsSinceWork = Math.min(64, fillsSinceWork + fills);
+
+        // Acceleration perception: the machine works at most once per designed interval of
+        // REAL time. External accelerators only bank fills; they are paid out as a production
+        // multiplier on the next real-time cycle instead of extra work cycles.
+        long now = System.nanoTime();
+        long designedNanos = interval * 50_000_000L;
+        if (lastWorkNanos != 0 && now - lastWorkNanos < designedNanos * 95 / 100) return;
+
+        long mult = Math.max(1, fillsSinceWork);
+        fillsSinceWork = 0;
+        lastWorkNanos = now;
 
         var types = collectTypes(lv);
         if (types.isEmpty()) return;
@@ -236,7 +262,8 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
             if (extracted + fromGrid < totalCost - 1) return; // insufficient power anywhere
         }
 
-        long lootingMult = getLootingMultiplier();
+        // Production multiplier: acceleration banked above, paid out here
+        long lootingMult = getLootingMultiplier() * mult;
         boolean hasProbability = upgrades.isInstalled(ModItems.PROBABILITY_CARD);
         var src = new MachineSource(this);
         appeng.api.storage.MEStorage inv = gridActive ? grid.getStorageService().getInventory() : null;
@@ -252,7 +279,7 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
         if (!weapon.isEmpty() && hasApotheosis()) {
             com.example.mespawner.compat.ApotheosisCompat.generateBonus(lv, weapon, stack -> {
                 var key = AEItemKey.of(stack);
-                if (key != null) insertOrExport(inv, key, stack.getCount(), src);
+                if (key != null) insertOrExport(inv, key, stack.getCount() * mult, src);
             });
         }
 

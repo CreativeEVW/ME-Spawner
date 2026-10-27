@@ -69,8 +69,18 @@ public class MonsterDiskItem extends Item {
         setEntries(stack, entries);
     }
 
+    /**
+     * Cached per-entity-type formed thresholds: the threshold only depends on the entity's
+     * static max health, so it is computed once instead of creating an entity every call.
+     */
+    private static final java.util.Map<net.minecraft.world.entity.EntityType<?>, Integer> FORMED_KILL_CACHE = new java.util.HashMap<>();
+
     /** Compute the "formed" kill count threshold: n = floor(1000 / maxHealth). */
     public static int getFormedKillCount(net.minecraft.world.entity.EntityType<?> type, Level level) {
+        return FORMED_KILL_CACHE.computeIfAbsent(type, t -> computeFormedKillCount(t, level));
+    }
+
+    private static int computeFormedKillCount(net.minecraft.world.entity.EntityType<?> type, Level level) {
         double maxHealth = 20.0;
         var entity = type.create(level);
         if (entity instanceof net.minecraft.world.entity.LivingEntity living) {
