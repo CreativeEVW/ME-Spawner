@@ -2,6 +2,7 @@ package com.example.mespawner.registration;
 
 import com.example.mespawner.MESpawner;
 import com.example.mespawner.blockentity.MESpawnerBlockEntity;
+import com.example.mespawner.blockentity.SpawnerControllerBlockEntity;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -20,6 +21,17 @@ public class ModBlockEntities {
                 var type = BlockEntityType.Builder.of(
                         (pos, state) -> new MESpawnerBlockEntity(ref.get(), pos, state),
                         ModBlocks.ME_SPAWNER.get()
+                ).build(null);
+                ref.set(type);
+                return type;
+            });
+
+    public static final Supplier<BlockEntityType<SpawnerControllerBlockEntity>> SPAWNER_CONTROLLER_BLOCK_ENTITY =
+            BLOCK_ENTITIES.register("spawner_controller", () -> {
+                var ref = new AtomicReference<BlockEntityType<SpawnerControllerBlockEntity>>();
+                var type = BlockEntityType.Builder.of(
+                        (pos, state) -> new SpawnerControllerBlockEntity(ref.get(), pos, state),
+                        ModBlocks.SPAWNER_CONTROLLER.get()
                 ).build(null);
                 ref.set(type);
                 return type;

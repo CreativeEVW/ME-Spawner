@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "CCC",
+    "CCC",
+    "CCC"
+  ],
+  "key": {
+    "C": { "item": "mespawner:experience_crystal" }
+  },
+  "result": {
+    "id": "mespawner:experience_crystal_block",
+    "count": 1
+  }
+}

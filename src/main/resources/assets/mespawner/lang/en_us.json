@@ -1,5 +1,7 @@
 {
   "block.mespawner.me_spawner": "ME Spawner",
+  "block.mespawner.spawner_controller": "Spawner Controller",
+  "gui.mespawner.controller_conflict": "Controller Conflict",
   "itemGroup.mespawner": "ME Spawner",
   "gui.mespawner.energy": "Energy: %s / %s AE",
   "gui.mespawner.status_idle": "§aIdle",
@@ -26,6 +28,8 @@
   "item.mespawner.monster_disk.recorded": "Kill data synced",
   "item.mespawner.monster_disk.formed": "Formed",
   "config.jade.plugin_mespawner.info": "ME Spawner",
+  "config.jade.plugin_mespawner.controller_conflict": "Controller Conflict",
+  "item.mespawner.experience_crystal": "Experience Crystal",
   "gui.mespawner.me_export": "Storage Mode",
   "gui.mespawner.me_export.on": "Products are output to the ME network.",
   "gui.mespawner.me_export.off": "Products are output only to enabled adjacent containers; nothing is output when they are full.",
@@ -33,5 +37,7 @@
   "gui.mespawner.set_output_sides.on": "Enabled",
   "gui.mespawner.set_output_sides.off": "Disabled",
   "gui.mespawner.set_output_sides.open": "Open output config",
-  "gui.mespawner.set_output_sides.clear": "Clear"
+  "gui.mespawner.set_output_sides.clear": "Clear",
+  "item.mespawner.experience_crystal_block": "Experience Crystal Block",
+  "jei.mespawner.experience_crystal_info": "With an overflow destruction card installed in the spawner controller, destroyed products are automatically converted into experience crystals."
 }

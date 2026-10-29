@@ -14,6 +14,15 @@ public class ModItems {
     public static final DeferredItem<BlockItem> ME_SPAWNER = ITEMS.register("me_spawner",
             () -> new BlockItem(ModBlocks.ME_SPAWNER.get(), new Item.Properties()));
 
+    public static final DeferredItem<BlockItem> SPAWNER_CONTROLLER = ITEMS.register("spawner_controller",
+            () -> new BlockItem(ModBlocks.SPAWNER_CONTROLLER.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> EXPERIENCE_CRYSTAL = ITEMS.register("experience_crystal",
+            () -> new com.example.mespawner.item.ExperienceCrystalItem(new Item.Properties()));
+
+    public static final DeferredItem<Item> EXPERIENCE_CRYSTAL_BLOCK = ITEMS.register("experience_crystal_block",
+            () -> new com.example.mespawner.item.ExperienceCrystalBlockItem(new Item.Properties()));
+
     // Upgrade cards — must be AE2 UpgradeCardItem for native upgrade slots
     public static final DeferredItem<Item> PROBABILITY_CARD = ITEMS.register("probability_card",
             () -> appeng.api.upgrades.Upgrades.createUpgradeCardItem(new Item.Properties().stacksTo(64)));

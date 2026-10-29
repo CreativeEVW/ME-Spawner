@@ -2,6 +2,7 @@ package com.example.mespawner.registration;
 
 import com.example.mespawner.MESpawner;
 import com.example.mespawner.menu.MESpawnerMenu;
+import com.example.mespawner.menu.SpawnerControllerMenu;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.inventory.MenuType;
 import net.neoforged.neoforge.registries.DeferredHolder;
@@ -14,4 +15,7 @@ public class ModMenuTypes {
 
     public static final DeferredHolder<MenuType<?>, MenuType<MESpawnerMenu>> ME_SPAWNER =
             MENU_TYPES.register("me_spawner", () -> MESpawnerMenu.TYPE);
+
+    public static final DeferredHolder<MenuType<?>, MenuType<SpawnerControllerMenu>> SPAWNER_CONTROLLER =
+            MENU_TYPES.register("spawner_controller", () -> SpawnerControllerMenu.TYPE);
 }

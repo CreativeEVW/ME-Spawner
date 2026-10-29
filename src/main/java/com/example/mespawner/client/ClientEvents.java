@@ -4,6 +4,7 @@ import appeng.client.gui.style.StyleManager;
 import com.example.mespawner.MESpawner;
 import com.example.mespawner.item.MonsterDiskItem;
 import com.example.mespawner.menu.MESpawnerMenu;
+import com.example.mespawner.menu.SpawnerControllerMenu;
 import com.example.mespawner.registration.ModItems;
 import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.network.chat.Component;
@@ -34,12 +35,19 @@ public class ClientEvents {
     @SubscribeEvent
     public static void registerScreens(RegisterMenuScreensEvent event) {
         event.register(MESpawnerMenu.TYPE, ClientEvents::createMESpawnerScreen);
+        event.register(SpawnerControllerMenu.TYPE, ClientEvents::createSpawnerControllerScreen);
     }
 
     private static MESpawnerScreen createMESpawnerScreen(
             MESpawnerMenu menu, Inventory inv, Component title) {
         var style = StyleManager.loadStyleDoc("/screens/me_spawner.json");
         return new MESpawnerScreen(menu, inv, title, style);
+    }
+
+    private static SpawnerControllerScreen createSpawnerControllerScreen(
+            SpawnerControllerMenu menu, Inventory inv, Component title) {
+        var style = StyleManager.loadStyleDoc("/screens/spawner_controller.json");
+        return new SpawnerControllerScreen(menu, inv, title, style);
     }
 
     /** Opens the monster disk list screen. Called from common code but only on the client. */

@@ -83,6 +83,20 @@ public class MESpawner {
         Upgrades.add(ModItems.COMPRESSED_LOOTING_CARD.get(), block, 3);
         Upgrades.add(ModItems.ULTIMATE_LOOTING_CARD.get(), block, 3);
         Upgrades.add(AEItems.SPEED_CARD, block, 4);
+
+        // Spawner controller: same control surface, no production yet
+        var ctrlBlock = ModBlocks.SPAWNER_CONTROLLER.get();
+        var ctrlBeType = ModBlockEntities.SPAWNER_CONTROLLER_BLOCK_ENTITY.get();
+        AEBaseBlockEntity.registerBlockEntityItem(ctrlBeType, ModItems.SPAWNER_CONTROLLER.get());
+        ctrlBlock.setBlockEntity(
+                com.example.mespawner.blockentity.SpawnerControllerBlockEntity.class,
+                ctrlBeType, null, null);
+        Upgrades.add(AEItems.INVERTER_CARD, ctrlBlock, 1);
+        Upgrades.add(AEItems.CAPACITY_CARD, ctrlBlock, 1);
+        Upgrades.add(AEItems.VOID_CARD, ctrlBlock, 1);
+        Upgrades.add(ModItems.LOOTING_CARD.get(), ctrlBlock, 3);
+        Upgrades.add(ModItems.COMPRESSED_LOOTING_CARD.get(), ctrlBlock, 3);
+        Upgrades.add(ModItems.ULTIMATE_LOOTING_CARD.get(), ctrlBlock, 3);
     }
 
     /** Drop cached loot-table expansions when the resource manager reloads (tables are replaced). */
@@ -106,6 +120,16 @@ public class MESpawner {
         event.registerBlockEntity(
                 net.neoforged.neoforge.capabilities.Capabilities.EnergyStorage.BLOCK,
                 ModBlockEntities.ME_SPAWNER_BLOCK_ENTITY.get(),
+                (be, side) -> be.getEnergyStorage(side));
+
+        // Spawner controller capabilities (same as the spawner)
+        event.registerBlockEntity(
+                AECapabilities.IN_WORLD_GRID_NODE_HOST,
+                ModBlockEntities.SPAWNER_CONTROLLER_BLOCK_ENTITY.get(),
+                (be, ctx) -> be);
+        event.registerBlockEntity(
+                net.neoforged.neoforge.capabilities.Capabilities.EnergyStorage.BLOCK,
+                ModBlockEntities.SPAWNER_CONTROLLER_BLOCK_ENTITY.get(),
                 (be, side) -> be.getEnergyStorage(side));
     }
 

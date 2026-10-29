@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    { "item": "mespawner:experience_crystal" },
+    { "item": "minecraft:glass_bottle" }
+  ],
+  "result": {
+    "id": "minecraft:experience_bottle",
+    "count": 1
+  }
+}

@@ -2,6 +2,7 @@ package com.example.mespawner.registration;
 
 import com.example.mespawner.MESpawner;
 import com.example.mespawner.block.MESpawnerBlock;
+import com.example.mespawner.block.SpawnerControllerBlock;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
@@ -15,6 +16,14 @@ public class ModBlocks {
     public static final DeferredBlock<MESpawnerBlock> ME_SPAWNER = BLOCKS.register(
             "me_spawner",
             () -> new MESpawnerBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.METAL)
+                    .strength(5, 6)
+                    .sound(SoundType.METAL)
+                    .noOcclusion()));
+
+    public static final DeferredBlock<SpawnerControllerBlock> SPAWNER_CONTROLLER = BLOCKS.register(
+            "spawner_controller",
+            () -> new SpawnerControllerBlock(BlockBehaviour.Properties.of()
                     .mapColor(MapColor.METAL)
                     .strength(5, 6)
                     .sound(SoundType.METAL)

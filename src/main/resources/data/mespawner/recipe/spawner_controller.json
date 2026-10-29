@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "CSC",
+    "SMS",
+    "CSC"
+  ],
+  "key": {
+    "C": { "item": "ae2:fluix_block" },
+    "S": { "item": "mespawner:me_spawner" },
+    "M": { "item": "ae2:controller" }
+  },
+  "result": {
+    "id": "mespawner:spawner_controller",
+    "count": 1
+  }
+}

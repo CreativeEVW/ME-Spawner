@@ -1,5 +1,7 @@
 {
   "block.mespawner.me_spawner": "ME刷怪笼",
+  "block.mespawner.spawner_controller": "刷怪笼控制器",
+  "gui.mespawner.controller_conflict": "控制器冲突",
   "itemGroup.mespawner": "ME刷怪笼",
   "gui.mespawner.energy": "能量: %s / %s AE",
   "gui.mespawner.status_idle": "§a空闲",
@@ -26,6 +28,8 @@
   "item.mespawner.monster_disk.recorded": "已同步击杀数据",
   "item.mespawner.monster_disk.formed": "已成型",
   "config.jade.plugin_mespawner.info": "ME刷怪笼",
+  "config.jade.plugin_mespawner.controller_conflict": "控制器冲突",
+  "item.mespawner.experience_crystal": "经验晶体",
   "gui.mespawner.me_export": "存储模式",
   "gui.mespawner.me_export.on": "产物输出到ME网络。",
   "gui.mespawner.me_export.off": "产物仅输出到允许输出的相邻容器，容器满则不输出。",
@@ -33,5 +37,7 @@
   "gui.mespawner.set_output_sides.on": "启用",
   "gui.mespawner.set_output_sides.off": "禁用",
   "gui.mespawner.set_output_sides.open": "打开输出配置",
-  "gui.mespawner.set_output_sides.clear": "清空"
+  "gui.mespawner.set_output_sides.clear": "清空",
+  "item.mespawner.experience_crystal_block": "经验晶体块",
+  "jei.mespawner.experience_crystal_info": "在刷怪笼控制器中安装溢出销毁卡后，销毁产物自动转化为经验晶体"
 }

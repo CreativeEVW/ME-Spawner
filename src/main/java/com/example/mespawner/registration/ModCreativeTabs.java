@@ -21,6 +21,9 @@ public class ModCreativeTabs {
                     .icon(() -> new ItemStack(ModItems.ME_SPAWNER.get()))
                     .displayItems((params, output) -> {
                         output.accept(ModItems.ME_SPAWNER.get());
+                        output.accept(ModItems.SPAWNER_CONTROLLER.get());
+                        output.accept(ModItems.EXPERIENCE_CRYSTAL.get());
+                        output.accept(ModItems.EXPERIENCE_CRYSTAL_BLOCK.get());
                         output.accept(ModItems.PROBABILITY_CARD.get());
                         output.accept(ModItems.LOOTING_CARD.get());
                         output.accept(ModItems.COMPRESSED_LOOTING_CARD.get());

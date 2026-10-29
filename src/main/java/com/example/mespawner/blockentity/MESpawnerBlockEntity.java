@@ -211,6 +211,9 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
     /** Acceleration perception: banked counter-fills since the last real-time work cycle. */
     private int fillsSinceWork = 0;
 
+    /** The network's active spawner controller (single instance per network), or null. */
+    private com.example.mespawner.blockentity.SpawnerControllerBlockEntity activeController;
+
     /** Real-time timestamp of the last work cycle (System.nanoTime). */
     private long lastWorkNanos = 0;
 
@@ -248,6 +251,9 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
         boolean gridActive = grid != null && getMainNode().isActive();
         // Offline (no active network): products can only go to adjacent containers
         if (!gridActive && outputSides.isEmpty()) return;
+
+        // Find the network's active spawner controller (single instance per network)
+        activeController = findActiveController(grid);
 
         // Draw power: internal buffer first (FE input, works offline), the grid covers the deficit
         long totalCost = (long) Config.spawnEnergyCost * types.size();
@@ -293,6 +299,15 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
     /** Whether the internal buffer alone can power one operation (offline/FE-fed state). */
     private boolean hasBufferPower() {
         return getAECurrentPower() >= Config.spawnEnergyCost;
+    }
+
+    /** The single active spawner controller on this network, or null. */
+    private com.example.mespawner.blockentity.SpawnerControllerBlockEntity findActiveController(appeng.api.networking.IGrid grid) {
+        if (grid == null) return null;
+        for (var c : grid.getMachines(com.example.mespawner.blockentity.SpawnerControllerBlockEntity.class)) {
+            if (c.isActiveController()) return c;
+        }
+        return null;
     }
 
     /** Collect the entity types currently selected for processing (egg or formed disk mobs). */
@@ -410,6 +425,10 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
 
     private void processEntityType(ServerLevel lv, EntityType<?> type, boolean hasProbability,
                                    long lootingMult, MachineSource src, appeng.api.storage.MEStorage inv) {
+        // Special drops always apply — even for mobs without a loot table
+        // (e.g. modded bosses that handle their drops in their own code)
+        produceSpecialDrops(inv, type, lootingMult, src);
+
         var lootTable = lv.getServer().reloadableRegistries().getLootTable(type.getDefaultLootTable());
         if (lootTable == LootTable.EMPTY) return;
 
@@ -482,13 +501,63 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
             }
         }
 
-        // Bonus drops for special bosses — manually-added fake loot table entries,
-        // applied in both probability and normal production (affected by looting multiplier)
-        if (type == EntityType.ENDER_DRAGON) {
+    }
+
+    /**
+     * Special drops for specific mobs — manually-added production on top of the loot table,
+     * applied in both probability and normal production (affected by looting multiplier).
+     */
+    private void produceSpecialDrops(appeng.api.storage.MEStorage inv, EntityType<?> type, long lootingMult, MachineSource src) {
+        if (type == EntityType.SHEEP) {
+            insertOrExport(inv, AEItemKey.of(net.minecraft.world.item.Items.WHITE_WOOL), 2 * lootingMult, src);
+        } else if (type == EntityType.WARDEN) {
+            insertOrExport(inv, AEItemKey.of(net.minecraft.world.item.Items.ECHO_SHARD), lootingMult, src);
+        } else if (type == EntityType.ENDER_DRAGON) {
             insertOrExport(inv, AEItemKey.of(net.minecraft.world.item.Items.DRAGON_EGG), lootingMult, src);
+            if (hasDraconicEvolution()) {
+                insertByItemId(inv, "draconicevolution:dragon_heart", lootingMult, src);
+                insertByItemId(inv, "draconicevolution:draconium_dust", 64 * lootingMult, src);
+            }
         } else if (type == EntityType.WITHER) {
             insertOrExport(inv, AEItemKey.of(net.minecraft.world.item.Items.NETHER_STAR), lootingMult, src);
         }
+
+        // Chaos Guardian (Draconic Evolution boss, registry id "draconic_guardian")
+        if (hasDraconicEvolution()) {
+            var chaosId = ResourceLocation.fromNamespaceAndPath("draconicevolution", "draconic_guardian");
+            if (BuiltInRegistries.ENTITY_TYPE.containsKey(chaosId)
+                    && type == BuiltInRegistries.ENTITY_TYPE.get(chaosId)) {
+                insertByItemId(inv, "draconicevolution:awakened_draconium_block", lootingMult, src);
+                insertByItemId(inv, "draconicevolution:chaos_shard", lootingMult, src);
+                insertByItemId(inv, "draconicevolution:dragon_heart", lootingMult, src);
+            }
+        }
+
+        // Piglich (Allthemodium boss)
+        if (hasAllthemodium()) {
+            var piglichId = ResourceLocation.fromNamespaceAndPath("allthemodium", "piglich");
+            if (BuiltInRegistries.ENTITY_TYPE.containsKey(piglichId)
+                    && type == BuiltInRegistries.ENTITY_TYPE.get(piglichId)) {
+                insertByItemId(inv, "allthemodium:piglich_heart", lootingMult, src);
+            }
+        }
+    }
+
+    /** Draconic Evolution is optional: guarded by a ModList check (never loads its classes). */
+    private static boolean hasDraconicEvolution() {
+        return net.neoforged.fml.ModList.get().isLoaded("draconicevolution");
+    }
+
+    /** Allthemodium is optional: guarded by a ModList check (never loads its classes). */
+    private static boolean hasAllthemodium() {
+        return net.neoforged.fml.ModList.get().isLoaded("allthemodium");
+    }
+
+    /** Insert a special drop by item id — registry lookups by id are safe when the mod is absent. */
+    private void insertByItemId(appeng.api.storage.MEStorage inv, String itemId, long amount, MachineSource src) {
+        var id = ResourceLocation.parse(itemId);
+        if (!BuiltInRegistries.ITEM.containsKey(id)) return;
+        insertOrExport(inv, AEItemKey.of(BuiltInRegistries.ITEM.get(id)), amount, src);
     }
 
     /**
@@ -645,6 +714,14 @@ public class MESpawnerBlockEntity extends AENetworkedBlockEntity
      * containers, whatever does not fit is dropped (never falls back to the ME network).
      */
     private void insertOrExport(@Nullable appeng.api.storage.MEStorage inv, AEItemKey key, long amount, MachineSource src) {
+        // Controller takeover only applies when this spawner targets the AE network;
+        // adjacent-container mode keeps the spawner's own production logic untouched
+        boolean targetsAE = inv != null && configManager.getSetting(MESettings.ME_EXPORT) == YesNo.YES;
+        if (activeController != null && targetsAE) {
+            activeController.handleProduct(key, amount);
+            return;
+        }
+
         // Offline (no network) or adjacent mode: products only go to the containers
         if (inv == null || configManager.getSetting(MESettings.ME_EXPORT) == YesNo.NO) {
             if (!outputSides.isEmpty() && level != null) {

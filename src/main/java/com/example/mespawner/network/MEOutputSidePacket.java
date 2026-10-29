@@ -30,9 +30,12 @@ public record MEOutputSidePacket(String side, boolean value) implements CustomPa
 
     public static void handle(MEOutputSidePacket packet, IPayloadContext ctx) {
         ctx.enqueueWork(() -> {
-            if (ctx.player() instanceof ServerPlayer sp && sp.containerMenu instanceof MESpawnerMenu menu) {
-                var dir = Direction.byName(packet.side());
+            if (!(ctx.player() instanceof ServerPlayer sp)) return;
+            var dir = Direction.byName(packet.side());
+            if (sp.containerMenu instanceof MESpawnerMenu menu) {
                 menu.getHost().setOutputSide(dir, packet.value());
+            } else if (sp.containerMenu instanceof com.example.mespawner.menu.SpawnerControllerMenu ctrl) {
+                ctrl.getHost().setOutputSide(dir, packet.value());
             }
         });
     }

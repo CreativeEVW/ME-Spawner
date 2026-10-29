@@ -79,6 +79,9 @@ dependencies {
     // Jade - HUD overlay
     compileOnly "curse.maven:jade-324717:6853386"
 
+    // JEI - ghost ingredient drag for config slots (compileOnly against the local mojmap build, optional)
+    compileOnly files('run/mods/jei-1.21.1-neoforge-19.38.0.366.jar')
+
     // Apotheosis - optional compat (compileOnly from Modrinth, not bundled)
     compileOnly "maven.modrinth:rqFWfVlz:1.21.1-8.9.0"   // Apotheosis
     compileOnly "maven.modrinth:tCkE8p2N:1.21.1-9.9.2"  // Placebo
